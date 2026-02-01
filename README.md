@@ -54,6 +54,11 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 
 ## 📋 Sürüm Geçmişi
 
+### v2.2.2 - NoneType Karşılaştırma Hatası Düzeltmesi (2026-02-01)
+- Video/audio format seçimi sırasında NoneType karşılaştırma hatası giderildi
+- height ve abr değerlerinin None olması durumunda varsayılan değer kullanımı
+- Format bilgisi alma işlemi stabil hale getirildi
+
 ### v2.2 - Hata Ayıklama Eklentileri (2026-02-01)
 - Anahtar noktalara debug print ifadeleri eklendi
 - İndirme işlemi sırasında URL, format ve kalite bilgilerini loglama
