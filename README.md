@@ -1,11 +1,11 @@
-# ByteTube - YouTube Dönüştürücü v2.2.5
+# ByteTube - YouTube Dönüştürücü v2.2.6
 
 YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygulaması. yt-dlp teknolojisi ile yüksek kaliteli indirme sağlar.
 
 ## ✨ Özellikler
 - **YouTube Video/MP3 İndirme**: yt-dlp ile yüksek kaliteli indirme
 - **Çoklu Format Desteği**: MP4 video ve MP3 ses formatları
-- **Kalite Seçenekleri**: En İyi, 720p, 480p, 360p
+- **Kalite Seçenekleri**: En İyi, 4K, 1440p, 1080p, 720p, 480p, 360p
 - **Video Bilgi Görüntüleme**: Başlık, süre, izlenme, beğeni bilgileri
 - **İlerleme Takibi**: Gerçek zamanlı indirme ilerlemesi
 - **Kolay Kullanım**: Modern ve kullanıcı dostu arayüz
@@ -52,7 +52,7 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 1. Uygulamayı başlatın
 2. YouTube URL'sini yapıştırın (otomatik olarak video bilgileri alınır)
 3. Format seçin: MP3 (Ses) veya MP4 (Video)
-4. MP4 için kalite seçin (En İyi, 720p, 480p, 360p)
+4. MP4 için kalite seçin (En İyi, 4K, 1440p, 1080p, 720p, 480p, 360p)
 5. "⬇️ İNDİR" butonuna tıklayın
 6. İndirme klasörünü seçin
 7. İndirme işlemini takip edin
@@ -71,6 +71,12 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 - **Video bilgileri gelmiyor**: İnternet bağlantınızı kontrol edin
 
 ## 📋 Sürüm Geçmişi
+
+### v2.2.6 - Yüksek Çözünürlükler ve İndirme Kilidi (2026-02-01)
+- 4K, 1440p, 1080p çözünürlük seçenekleri eklendi
+- Aynı anda sadece bir indirme işlemi yapılabilir (çift indirme önlendi)
+- Daha fazla hata ayıklama mesajı eklendi
+- Kullanıcı deneyimi iyileştirildi
 
 ### v2.2.5 - İndirme Tamamlanma Gösterimi Düzeltmesi (2026-02-01)
 - İndirme tamamlandığında "✅ İndirme Tamamlandı!" mesajı gösteriliyor
