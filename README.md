@@ -1,4 +1,4 @@
-# ByteTube - YouTube Dönüştürücü v2.2.4
+# ByteTube - YouTube Dönüştürücü v2.2.5
 
 YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygulaması. yt-dlp teknolojisi ile yüksek kaliteli indirme sağlar.
 
@@ -71,6 +71,11 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 - **Video bilgileri gelmiyor**: İnternet bağlantınızı kontrol edin
 
 ## 📋 Sürüm Geçmişi
+
+### v2.2.5 - İndirme Tamamlanma Gösterimi Düzeltmesi (2026-02-01)
+- İndirme tamamlandığında "✅ İndirme Tamamlandı!" mesajı gösteriliyor
+- İlerleme çubuğu %100'e ulaştığında doğru güncelleniyor
+- Kullanıcı deneyimi iyileştirildi
 
 ### v2.2.4 - yt-dlp Otomatik Güncelleme Özelliği (2026-02-01)
 - Uygulama içine yt-dlp güncelleme butonu eklendi
