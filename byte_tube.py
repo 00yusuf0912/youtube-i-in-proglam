@@ -190,6 +190,9 @@ class ByteTubeApp(ctk.CTk):
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
             }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -286,6 +289,9 @@ class ByteTubeApp(ctk.CTk):
                     'progress_hooks': [self._youtube_progress_hook],
                     'quiet': True,
                     'no_warnings': True,
+                    'http_headers': {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
                 }
                 format_name = "MP4 Video"
                 print(f"DEBUG: MP4 seçenekleri - Format: {ydl_opts['format']}, Çıktı: {ydl_opts['outtmpl']}")
@@ -301,6 +307,9 @@ class ByteTubeApp(ctk.CTk):
                     'progress_hooks': [self._youtube_progress_hook],
                     'quiet': True,
                     'no_warnings': True,
+                    'http_headers': {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
                 }
                 format_name = "MP3 Ses"
                 print(f"DEBUG: MP3 seçenekleri - Format: {ydl_opts['format']}, Çıktı: {ydl_opts['outtmpl']}")

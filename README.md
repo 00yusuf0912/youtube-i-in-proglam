@@ -40,6 +40,7 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 2. Python paketlerini yükleyin:
    ```bash
    pip install customtkinter yt-dlp
+   pip install --upgrade yt-dlp  # En son sürümü için
    ```
 
 3. Uygulamayı çalıştırın:
@@ -51,6 +52,12 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 - YouTube'un kullanım şartlarına uygun şekilde kullanın
 - FFmpeg MP3 dönüştürme için gereklidir
 - Uygulama Windows ve Linux'ta çalışır
+
+## 🔧 Sorun Giderme
+- **HTTP 403 Forbidden hatası**: yt-dlp'yi güncelleyin: `pip install --upgrade yt-dlp`
+- **ffmpeg bulunamadı hatası**: FFmpeg'i yükleyin ve PATH'e ekleyin
+- **İndirme başlamıyor**: URL'nin doğru olduğundan emin olun
+- **Video bilgileri gelmiyor**: İnternet bağlantınızı kontrol edin
 
 ## 📋 Sürüm Geçmişi
 
