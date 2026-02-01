@@ -51,3 +51,29 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 - YouTube'un kullanım şartlarına uygun şekilde kullanın
 - FFmpeg MP3 dönüştürme için gereklidir
 - Uygulama Windows ve Linux'ta çalışır
+
+## 📋 Sürüm Geçmişi
+
+### v2.2 - Hata Ayıklama Eklentileri (2026-02-01)
+- Anahtar noktalara debug print ifadeleri eklendi
+- İndirme işlemi sırasında URL, format ve kalite bilgilerini loglama
+- Video bilgi alma işlemi için detaylı hata ayıklama
+- Terminal çıktısında işlem takibi iyileştirildi
+
+### v2.1 - Hata Düzeltmeleri (2026-01-XX)
+- Runtime hataları düzeltildi (AttributeError, NameError)
+- Eksik import'lar eklendi (time modülü)
+- Kullanılmayan UI element referansları temizlendi
+- Kod tekrarları giderildi ve performans iyileştirildi
+
+### v2.0 - MP3/MP4 İndirme Desteği (2026-01-XX)
+- MP3 ve MP4 format desteği eklendi
+- Kalite seçenekleri: En İyi, 720p, 480p, 360p
+- İndirme klasörü seçimi özelliği
+- İlerleme çubuğu ve durum göstergeleri iyileştirildi
+
+### v1.0 - İlk Sürüm (2026-01-XX)
+- YouTube video indirme özelliği
+- Temel UI tasarımı
+- Video bilgi görüntüleme
+- Loglama sistemi
