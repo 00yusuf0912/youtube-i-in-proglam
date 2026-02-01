@@ -72,6 +72,12 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 
 ## 📋 Sürüm Geçmişi
 
+### v2.2.4 - yt-dlp Otomatik Güncelleme Özelliği (2026-02-01)
+- Uygulama içine yt-dlp güncelleme butonu eklendi
+- Arka planda pip upgrade işlemi
+- Kullanıcı dostu güncelleme arayüzü
+- Güncelleme sonrası yeniden başlatma hatırlatması
+
 ### v2.2.3 - HTTP 403 ve FFmpeg Hata Düzeltmeleri (2026-02-01)
 - yt-dlp seçeneklerine User-Agent header eklendi (403 Forbidden hatası için)
 - README'ye yt-dlp güncelleme talimatı eklendi
