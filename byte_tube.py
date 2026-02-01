@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox, filedialog
-import threading, time, os, json, logging
+import threading, time, os, json, logging, sys
 import yt_dlp
 import queue
 
@@ -25,6 +25,16 @@ class ByteTubeApp(ctk.CTk):
         self.baslik = ctk.CTkLabel(self.main_frame, text="🎵 ByteTube YouTube Dönüştürücü",
                                   font=("Roboto", 24, "bold"))
         self.baslik.pack(pady=(20, 10))
+
+        # Araç çubuğu
+        toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        toolbar_frame.pack(fill="x", padx=20, pady=(0, 10))
+        
+        # yt-dlp güncelleme butonu
+        self.update_btn = ctk.CTkButton(toolbar_frame, text="🔄 yt-dlp Güncelle", height=35, 
+                                       fg_color="#ff9500", font=("Roboto", 12, "bold"),
+                                       command=self.yt_dlp_guncelle)
+        self.update_btn.pack(side="right")
 
         # Tabview oluştur
         self.tabview = ctk.CTkTabview(self.main_frame, width=900, height=600)
@@ -50,6 +60,39 @@ class ByteTubeApp(ctk.CTk):
 
         # Ayarlar dosyasını yükle
         self.ayarlar_yukle()
+
+    def yt_dlp_guncelle(self):
+        try:
+            self.status_label.configure(text="yt-dlp güncelleniyor...")
+            self.update_btn.configure(state="disabled", text="⏳ GÜNCELLENİYOR...")
+            
+            # Arka planda güncelleme yap
+            threading.Thread(target=self._yt_dlp_guncelle_thread, daemon=True).start()
+        except Exception as e:
+            messagebox.showerror("Hata", f"Güncelleme başlatılırken hata: {e}")
+
+    def _yt_dlp_guncelle_thread(self):
+        try:
+            import subprocess
+            result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"], 
+                                  capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                self.status_label.configure(text="✅ yt-dlp başarıyla güncellendi!")
+                messagebox.showinfo("Başarılı", "yt-dlp başarıyla güncellendi!\nUygulamayı yeniden başlatın.")
+                self.log_ekle("yt-dlp güncellendi")
+            else:
+                error_msg = result.stderr or "Bilinmeyen hata"
+                self.status_label.configure(text="❌ Güncelleme başarısız")
+                messagebox.showerror("Hata", f"yt-dlp güncelleme hatası:\n{error_msg}")
+                self.log_ekle(f"yt-dlp güncelleme hatası: {error_msg}", "ERROR")
+                
+        except Exception as e:
+            self.status_label.configure(text="❌ Güncelleme hatası")
+            messagebox.showerror("Hata", f"Güncelleme sırasında hata:\n{str(e)}")
+            self.log_ekle(f"yt-dlp güncelleme hatası: {e}", "ERROR")
+        finally:
+            self.update_btn.configure(state="normal", text="🔄 yt-dlp Güncelle")
 
     def ayarlar_yukle(self):
         try:

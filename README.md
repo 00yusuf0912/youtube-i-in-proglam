@@ -48,6 +48,17 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
    python byte_tube.py
    ```
 
+## 🎮 Kullanım
+1. Uygulamayı başlatın
+2. YouTube URL'sini yapıştırın (otomatik olarak video bilgileri alınır)
+3. Format seçin: MP3 (Ses) veya MP4 (Video)
+4. MP4 için kalite seçin (En İyi, 720p, 480p, 360p)
+5. "⬇️ İNDİR" butonuna tıklayın
+6. İndirme klasörünü seçin
+7. İndirme işlemini takip edin
+
+**İpucu:** Uygulama içinde "🔄 yt-dlp Güncelle" butonuna tıklayarak yt-dlp'yi otomatik güncelleyebilirsiniz.
+
 ## 📝 Notlar
 - YouTube'un kullanım şartlarına uygun şekilde kullanın
 - FFmpeg MP3 dönüştürme için gereklidir
