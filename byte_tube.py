@@ -57,6 +57,9 @@ class ByteTubeApp(ctk.CTk):
         # Kuyruk ve thread yönetimi
         self.queue = queue.Queue()
         self.check_queue()
+        
+        # İndirme durumu
+        self.downloading = False
 
         # Ayarlar dosyasını yükle
         self.ayarlar_yukle()
@@ -155,7 +158,7 @@ class ByteTubeApp(ctk.CTk):
         
         ctk.CTkLabel(quality_frame, text="Kalite:", font=("Roboto", 14, "bold")).pack(side="left")
         self.quality_var = ctk.StringVar(value="best")
-        quality_combo = ctk.CTkComboBox(quality_frame, values=["En İyi", "720p", "480p", "360p"], 
+        quality_combo = ctk.CTkComboBox(quality_frame, values=["En İyi", "4K", "1440p", "1080p", "720p", "480p", "360p"], 
                                         variable=self.quality_var, width=150, height=35)
         quality_combo.pack(side="right")
         
@@ -282,6 +285,10 @@ class ByteTubeApp(ctk.CTk):
             logging.error(f"YouTube bilgi alma hatası: {e}")
 
     def indir(self):
+        if self.downloading:
+            messagebox.showwarning("Uyarı", "Zaten bir indirme işlemi devam ediyor!")
+            return
+            
         url = self.url_entry.get().strip()
         print(f"DEBUG: İndirme butonuna basıldı - URL: '{url}'")
         if not url:
@@ -304,6 +311,7 @@ class ByteTubeApp(ctk.CTk):
         format_type = self.format_var.get()
         quality = self.quality_var.get()
         
+        self.downloading = True
         self.download_btn.configure(state="disabled", text="⏳ İNDİRİLİYOR...")
         self.yt_progress_bar.set(0)
         self.yt_progress_label.configure(text=f"{format_type.upper()} indirme hazırlanıyor...")
@@ -320,6 +328,9 @@ class ByteTubeApp(ctk.CTk):
             # Kalite ayarları
             quality_map = {
                 "En İyi": "best",
+                "4K": "best[height<=2160]",
+                "1440p": "best[height<=1440]",
+                "1080p": "best[height<=1080]",
                 "720p": "best[height<=720]",
                 "480p": "best[height<=480]", 
                 "360p": "best[height<=360]"
@@ -375,6 +386,7 @@ class ByteTubeApp(ctk.CTk):
             self.log_ekle(f"İndirme hatası: {e}", "ERROR")
         
         finally:
+            self.downloading = False
             self.download_btn.configure(state="normal", text="⬇️ İNDİR")
 
     def _youtube_progress_hook(self, d):
@@ -388,6 +400,7 @@ class ByteTubeApp(ctk.CTk):
             except:
                 self.yt_progress_label.configure(text="İndiriliyor...")
         elif d['status'] == 'finished':
+            print(f"DEBUG: İndirme tamamlandı - {d.get('filename', 'Bilinmiyor')}")
             self.yt_progress_label.configure(text="✅ İndirme Tamamlandı!")
             self.yt_progress_bar.set(1.0)
 
