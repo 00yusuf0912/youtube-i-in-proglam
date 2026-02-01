@@ -186,6 +186,7 @@ class ByteTubeApp(ctk.CTk):
 
     def _youtube_bilgi_al_thread(self, url):
         try:
+            print(f"DEBUG: Video bilgileri alınıyor - URL: {url}")
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
@@ -193,6 +194,7 @@ class ByteTubeApp(ctk.CTk):
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
+                print(f"DEBUG: Video bilgisi çıkarıldı - Başlık: {info.get('title', 'Bilinmiyor')}")
                 
                 # Bilgileri göster
                 info_text = f"📹 Başlık: {info.get('title', 'Bilinmiyor')}\n"
@@ -233,6 +235,7 @@ class ByteTubeApp(ctk.CTk):
 
     def indir(self):
         url = self.url_entry.get().strip()
+        print(f"DEBUG: İndirme butonuna basıldı - URL: '{url}'")
         if not url:
             messagebox.showwarning("Uyarı", "Lütfen YouTube URL'sini girin!")
             self.log_ekle("HATA: URL girilmedi", "ERROR")
@@ -243,6 +246,7 @@ class ByteTubeApp(ctk.CTk):
             self.log_ekle("HATA: Geçersiz YouTube URL'si", "ERROR")
             return
         
+        print(f"DEBUG: URL geçerli, klasör seçimi açılıyor")
         # İndirme klasörü seçimi
         download_dir = filedialog.askdirectory(title="İndirme Klasörünü Seçin")
         if not download_dir:
@@ -262,6 +266,9 @@ class ByteTubeApp(ctk.CTk):
 
     def _indir_thread(self, url, download_dir, format_type, quality):
         try:
+            print(f"DEBUG: İndirme başladı - URL: {url}, Klasör: {download_dir}, Format: {format_type}, Kalite: {quality}")
+            self.log_ekle(f"DEBUG: İndirme parametreleri - URL: {url}, Format: {format_type}")
+            
             # Kalite ayarları
             quality_map = {
                 "En İyi": "best",
@@ -279,6 +286,7 @@ class ByteTubeApp(ctk.CTk):
                     'no_warnings': True,
                 }
                 format_name = "MP4 Video"
+                print(f"DEBUG: MP4 seçenekleri - Format: {ydl_opts['format']}, Çıktı: {ydl_opts['outtmpl']}")
             else:  # mp3
                 ydl_opts = {
                     'format': 'bestaudio/best',
@@ -293,6 +301,7 @@ class ByteTubeApp(ctk.CTk):
                     'no_warnings': True,
                 }
                 format_name = "MP3 Ses"
+                print(f"DEBUG: MP3 seçenekleri - Format: {ydl_opts['format']}, Çıktı: {ydl_opts['outtmpl']}")
             
             self.log_ekle(f"yt-dlp seçenekleri hazır: {format_name}")
             
