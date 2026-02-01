@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox, filedialog
-import threading, os, json, logging
+import threading, time, os, json, logging
 import yt_dlp
 import queue
 
@@ -183,18 +183,6 @@ class ByteTubeApp(ctk.CTk):
         self.video_info_text.configure(state="disabled")
         
         threading.Thread(target=self._youtube_bilgi_al_thread, args=(url,), daemon=True).start()
-        url = self.url_entry.get().strip()
-        if not url:
-            messagebox.showwarning("Uyarı", "Lütfen YouTube URL'sini girin!")
-            return
-        
-        self.info_btn.configure(state="disabled", text="⏳ Bilgi alınıyor...")
-        self.video_info_text.configure(state="normal")
-        self.video_info_text.delete("0.0", "end")
-        self.video_info_text.insert("0.0", "Video bilgileri alınıyor...\n\n")
-        self.video_info_text.configure(state="disabled")
-        
-        threading.Thread(target=self._youtube_bilgi_al_thread, args=(url,), daemon=True).start()
 
     def _youtube_bilgi_al_thread(self, url):
         try:
@@ -242,9 +230,6 @@ class ByteTubeApp(ctk.CTk):
             self.video_info_text.insert("0.0", error_msg)
             self.video_info_text.configure(state="disabled")
             logging.error(f"YouTube bilgi alma hatası: {e}")
-        
-        finally:
-            self.info_btn.configure(state="normal", text="ℹ️ BİLGİ AL")
 
     def indir(self):
         url = self.url_entry.get().strip()
