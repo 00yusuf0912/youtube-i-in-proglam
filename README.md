@@ -61,6 +61,12 @@ YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygul
 
 ## 📋 Sürüm Geçmişi
 
+### v2.2.3 - HTTP 403 ve FFmpeg Hata Düzeltmeleri (2026-02-01)
+- yt-dlp seçeneklerine User-Agent header eklendi (403 Forbidden hatası için)
+- README'ye yt-dlp güncelleme talimatı eklendi
+- Sorun giderme bölümü eklendi
+- FFmpeg yükleme hatırlatması iyileştirildi
+
 ### v2.2.2 - NoneType Karşılaştırma Hatası Düzeltmesi (2026-02-01)
 - Video/audio format seçimi sırasında NoneType karşılaştırma hatası giderildi
 - height ve abr değerlerinin None olması durumunda varsayılan değer kullanımı
