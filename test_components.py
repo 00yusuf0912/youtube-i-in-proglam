@@ -1,21 +1,20 @@
-import pytesseract
-from deep_translator import GoogleTranslator
-from PIL import Image, ImageOps, ImageEnhance
+import yt_dlp
+import customtkinter as ctk
 
-# Test tesseract
-print("Tesseract version:", pytesseract.get_tesseract_version())
+# Test yt-dlp
+print("Testing yt-dlp...")
+try:
+    with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+        print("yt-dlp: OK")
+except Exception as e:
+    print(f"yt-dlp error: {e}")
 
-# Test translator
-translator = GoogleTranslator(source='en', target='tr')
-test_text = "Hello world"
-translated = translator.translate(test_text)
-print(f"Translation test: '{test_text}' -> '{translated}'")
-
-# Test image processing (dummy)
-img = Image.new('L', (100, 100), 255)  # White image
-processed = ImageOps.invert(ImageOps.grayscale(img))
-processed = ImageEnhance.Contrast(processed).enhance(2.5)
-ocr_result = pytesseract.image_to_string(processed, lang='eng').strip()
-print(f"OCR test on empty image: '{ocr_result}'")
+# Test customtkinter
+print("Testing CustomTkinter...")
+try:
+    ctk.set_appearance_mode("dark")
+    print("CustomTkinter: OK")
+except Exception as e:
+    print(f"CustomTkinter error: {e}")
 
 print("All tests passed!")

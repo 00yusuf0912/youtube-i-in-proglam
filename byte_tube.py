@@ -1,355 +1,162 @@
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import messagebox, filedialog, ttk
-import threading, time, os, pyautogui, json, logging
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter
-import pytesseract
-from deep_translator import GoogleTranslator
+from tkinter import messagebox, filedialog
+import threading, os, json, logging
+import yt_dlp
 import queue
 
 # --- LOGGING AYARLARI ---
-logging.basicConfig(filename='byte_tube.log', level=logging.INFO, 
+logging.basicConfig(filename='byte_tube.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
-
-# --- TESSERACT KONFIGURASYONU ---
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
-
-class SubtitleOverlay(tk.Toplevel):
-    def __init__(self):
-        super().__init__()
-        self.overrideredirect(True)
-        self.attributes("-topmost", True, "-alpha", 0.9)
-        self.config(bg='#000000')
-        self.geometry("900x130+400+820")
-
-        # Gamer Teması (Neon Mavi)
-        self.border = tk.Frame(self, bg='#00d2ff', padx=2, pady=2)
-        self.border.pack(expand=True, fill="both")
-        
-        self.inner = tk.Frame(self.border, bg='#050505')
-        self.inner.pack(expand=True, fill="both")
-
-        self.label = tk.Label(self.inner, text="ByteTube AI: Konuşma Bekleniyor...", 
-                               font=("Segoe UI", 20, "bold"), fg="white", 
-                               bg="#050505", wraplength=850, justify="center")
-        self.label.pack(expand=True, fill="both", padx=15)
-        
-        self.bind("<Button-1>", self.basla)
-        self.bind("<B1-Motion>", self.surukle)
-
-    def basla(self, e): self.x, self.y = e.x, e.y
-    def surukle(self, e): self.geometry(f"+{self.winfo_x()+(e.x-self.x)}+{self.winfo_y()+(e.y-self.y)}")
-    def guncelle(self, metin): self.label.config(text=metin)
 
 class ByteTubeApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("ByteTube v16.0 - Video Dönüştürücü")
-        self.geometry("1200x800")
+        self.title("ByteTube - YouTube Dönüştürücü")
+        self.geometry("1000x700")
         ctk.set_appearance_mode("dark")
-        
-        # Ana değişkenler
-        self.calisiyor = False
-        self.secili_alan = None
-        self.target_lang = 'tr'
-        self.translator = GoogleTranslator(source='en', target=self.target_lang)
-        
-        # Yeni özellikler için değişkenler
-        self.bekleme_suresi = 1.0
-        self.ocr_hassasiyet = 2.5
-        self.gecmis = []
-        self.kaydet_dosyasi = "donusturulen_metinler.txt"
-        self.log_queue = queue.Queue()
-        
-        # Ayarlar
-        self.ayarlar = {
-            'bekleme_suresi': 1.0,
-            'ocr_hassasiyet': 2.5,
-            'tema': 'dark',
-            'kaydet_otomatik': False
-        }
+        ctk.set_default_color_theme("blue")
+
+        # Ana frame
+        self.main_frame = ctk.CTkFrame(self)
+        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Başlık
+        self.baslik = ctk.CTkLabel(self.main_frame, text="🎵 ByteTube YouTube Dönüştürücü",
+                                  font=("Roboto", 24, "bold"))
+        self.baslik.pack(pady=(20, 10))
+
+        # Tabview oluştur
+        self.tabview = ctk.CTkTabview(self.main_frame, width=900, height=600)
+        self.tabview.pack(pady=10)
+
+        # Sadece YouTube İndirme sekmesi
+        self.tabview.add("YouTube İndirme")
+        self.youtube_sayfasi_olustur()
+
+        # Durum çubuğu
+        self.status_label = ctk.CTkLabel(self.main_frame, text="Hazır",
+                                        font=("Roboto", 12))
+        self.status_label.pack(pady=(10, 0))
+
+        # İlerleme çubuğu
+        self.progress_bar = ctk.CTkProgressBar(self.main_frame, width=400)
+        self.progress_bar.pack(pady=(5, 20))
+        self.progress_bar.set(0)
+
+        # Kuyruk ve thread yönetimi
+        self.queue = queue.Queue()
+        self.check_queue()
+
+        # Ayarlar dosyasını yükle
         self.ayarlar_yukle()
-        
-        self.arayuz()
 
     def ayarlar_yukle(self):
         try:
-            if os.path.exists('ayarlar.json'):
-                with open('ayarlar.json', 'r') as f:
-                    self.ayarlar.update(json.load(f))
-                self.bekleme_suresi = self.ayarlar['bekleme_suresi']
-                self.ocr_hassasiyet = self.ayarlar['ocr_hassasiyet']
-                ctk.set_appearance_mode(self.ayarlar['tema'])
-        except Exception as e:
-            logging.error(f"Ayarlar yüklenirken hata: {e}")
+            with open('ayarlar.json', 'r', encoding='utf-8') as f:
+                self.ayarlar = json.load(f)
+        except FileNotFoundError:
+            self.ayarlar = {
+                'indirme_klasoru': os.path.join(os.path.expanduser('~'), 'Downloads'),
+                'varsayilan_format': 'mp4',
+                'varsayilan_kalite': 'best'
+            }
+            self.ayarlar_kaydet()
 
     def ayarlar_kaydet(self):
+        with open('ayarlar.json', 'w', encoding='utf-8') as f:
+            json.dump(self.ayarlar, f, ensure_ascii=False, indent=4)
+
+    def check_queue(self):
         try:
-            with open('ayarlar.json', 'w') as f:
-                json.dump(self.ayarlar, f, indent=4)
-        except Exception as e:
-            logging.error(f"Ayarlar kaydedilirken hata: {e}")
+            while True:
+                msg = self.queue.get_nowait()
+                if msg['type'] == 'status':
+                    self.status_label.configure(text=msg['text'])
+                elif msg['type'] == 'progress':
+                    self.progress_bar.set(msg['value'])
+                elif msg['type'] == 'error':
+                    messagebox.showerror("Hata", msg['text'])
+                elif msg['type'] == 'info':
+                    messagebox.showinfo("Bilgi", msg['text'])
+        except queue.Empty:
+            pass
+        self.after(100, self.check_queue)
 
-    def gecmis_yukle(self):
-        try:
-            if os.path.exists('gecmis.json'):
-                with open('gecmis.json', 'r') as f:
-                    self.gecmis = json.load(f)
-        except Exception as e:
-            logging.error(f"Geçmiş yüklenirken hata: {e}")
-
-    def gecmis_kaydet(self):
-        try:
-            with open('gecmis.json', 'w') as f:
-                json.dump(self.gecmis[-50:], f, indent=4)  # Son 50 kayıt
-        except Exception as e:
-            logging.error(f"Geçmiş kaydedilirken hata: {e}")
-
-    def arayuz(self):
-        self.configure(fg_color="#050505")
+    def youtube_sayfasi_olustur(self):
+        tab = self.tabview.tab("YouTube İndirme")
         
-        # Ana container
-        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_container.pack(fill="both", expand=True, padx=20, pady=20)
+        # URL girişi
+        url_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        url_frame.pack(fill="x", padx=20, pady=10)
         
-        # Üst panel
-        self.ust_panel = ctk.CTkFrame(self.main_container, height=80, fg_color="#0a0a0a")
-        self.ust_panel.pack(fill="x", pady=(0, 20))
+        ctk.CTkLabel(url_frame, text="YouTube URL:", font=("Roboto", 16, "bold")).pack(side="left")
+        self.url_entry = ctk.CTkEntry(url_frame, placeholder_text="https://www.youtube.com/watch?v=...", width=500, height=40)
+        self.url_entry.pack(side="right", padx=(10, 0), fill="x", expand=True)
+        self.url_entry.bind("<KeyRelease>", self.url_degisti)
         
-        ctk.CTkLabel(self.ust_panel, text="ByteTube", font=("Orbitron", 32, "bold"), text_color="#00d2ff").pack(side="left", padx=30, pady=20)
+        # Format seçimi
+        format_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        format_frame.pack(fill="x", padx=20, pady=10)
         
-        # Tema değiştirici
-        self.tema_btn = ctk.CTkButton(self.ust_panel, text="🌙", width=50, height=40, command=self.tema_degistir)
-        self.tema_btn.pack(side="right", padx=20, pady=20)
+        ctk.CTkLabel(format_frame, text="Format:", font=("Roboto", 14, "bold")).pack(side="left")
+        self.format_var = ctk.StringVar(value="mp3")
+        mp3_radio = ctk.CTkRadioButton(format_frame, text="🎵 MP3 (Ses)", variable=self.format_var, value="mp3", font=("Roboto", 12))
+        mp3_radio.pack(side="left", padx=(20, 10))
+        mp4_radio = ctk.CTkRadioButton(format_frame, text="🎬 MP4 (Video)", variable=self.format_var, value="mp4", font=("Roboto", 12))
+        mp4_radio.pack(side="left", padx=(10, 20))
         
-        # Sekme sistemi
-        self.tabview = ctk.CTkTabview(self.main_container, fg_color="#0a0a0a", segmented_button_fg_color="#00d2ff", 
-                                      segmented_button_selected_color="#00d2ff", segmented_button_unselected_color="#1a1a1a")
-        self.tabview.pack(fill="both", expand=True)
+        # Kalite seçimi (MP4 için)
+        quality_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        quality_frame.pack(fill="x", padx=20, pady=10)
         
-        # Sekmeler
-        self.tabview.add("Ana Sayfa")
-        self.tabview.add("Ayarlar")
-        self.tabview.add("Geçmiş")
+        ctk.CTkLabel(quality_frame, text="Kalite:", font=("Roboto", 14, "bold")).pack(side="left")
+        self.quality_var = ctk.StringVar(value="best")
+        quality_combo = ctk.CTkComboBox(quality_frame, values=["En İyi", "720p", "480p", "360p"], 
+                                        variable=self.quality_var, width=150, height=35)
+        quality_combo.pack(side="right")
         
-        self.ana_sayfa_olustur()
-        self.ayarlar_sayfasi_olustur()
-        self.gecmis_sayfasi_olustur()
-        
-        self.gecmis_sayfasi_olustur()
-        
-        # Klavye kısayolları
-        self.bind('<Control-s>', lambda e: self.donusturme_kaydet())
-        self.bind('<Control-r>', lambda e: self.gecmis_temizle())
-        self.bind('<F5>', lambda e: self.motor_tetikle())
-        self.bind('<Escape>', lambda e: self.on_closing())
-
-    def ana_sayfa_olustur(self):
-        tab = self.tabview.tab("Ana Sayfa")
-        
-        # Dil Seçimi
-        dil_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        dil_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(dil_frame, text="Hedef Dil:", font=("Roboto", 16)).pack(side="left")
-        self.dil_secici = ctk.CTkComboBox(dil_frame, width=200, height=40, 
-                                           values=["Türkçe (tr)", "İngilizce (en)", "Almanca (de)", "Fransızca (fr)", "İspanyolca (es)"],
-                                           command=self.dil_degistir)
-        self.dil_secici.set("Türkçe (tr)")
-        self.dil_secici.pack(side="right")
-        
-        # Kontrol butonları
+        # İndirme butonu
         btn_frame = ctk.CTkFrame(tab, fg_color="transparent")
         btn_frame.pack(fill="x", padx=20, pady=10)
         
-        self.btn_bolge = ctk.CTkButton(btn_frame, text="📍 ALTYAZI ALANINI BELİRLE", height=50, 
-                                        fg_color="#1a1a2e", border_width=1, border_color="#00d2ff", 
-                                        command=self.alan_sec)
-        self.btn_bolge.pack(side="left", padx=(0, 10), expand=True)
-
-        self.btn_baslat = ctk.CTkButton(btn_frame, text="▶️ AKILLI DÖNÜŞTÜRÜCÜYÜ BAŞLAT", height=50, 
-                                         fg_color="#00d2ff", text_color="#000", font=("Roboto", 16, "bold"),
-                                         command=self.motor_tetikle)
-        self.btn_baslat.pack(side="right", padx=(10, 0), expand=True)
+        self.download_btn = ctk.CTkButton(btn_frame, text="⬇️ İNDİR", height=50, 
+                                          fg_color="#ff6b35", font=("Roboto", 16, "bold"),
+                                          command=self.indir)
+        self.download_btn.pack(expand=True)
         
-        # İlerleme çubuğu
+        # İlerleme göstergesi
         progress_frame = ctk.CTkFrame(tab, fg_color="transparent")
         progress_frame.pack(fill="x", padx=20, pady=5)
         
-        self.progress_label = ctk.CTkLabel(progress_frame, text="Durum: Hazır", font=("Roboto", 12))
-        self.progress_label.pack(side="left")
+        self.yt_progress_label = ctk.CTkLabel(progress_frame, text="URL'yi yapıştırın ve MP3'ü indirin", font=("Roboto", 12))
+        self.yt_progress_label.pack(side="left")
         
-        self.progress_bar = ctk.CTkProgressBar(progress_frame, width=300)
-        self.progress_bar.pack(side="right")
-        self.progress_bar.set(0)
+        self.yt_progress_bar = ctk.CTkProgressBar(progress_frame, width=400)
+        self.yt_progress_bar.pack(side="right")
+        self.yt_progress_bar.set(0)
         
-        # Terminal
-        terminal_frame = ctk.CTkFrame(tab)
-        terminal_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        # Video bilgileri
+        info_frame = ctk.CTkFrame(tab)
+        info_frame.pack(fill="both", expand=True, padx=20, pady=10)
         
-        ctk.CTkLabel(terminal_frame, text="📋 Sistem Logları", font=("Roboto", 14, "bold")).pack(pady=(10, 5))
+        ctk.CTkLabel(info_frame, text="📹 Video Bilgileri", font=("Roboto", 14, "bold")).pack(pady=(10, 5))
         
-        self.terminal = ctk.CTkTextbox(terminal_frame, fg_color="#08080a", text_color="#00ff88", font=("Consolas", 12))
-        self.terminal.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-        self.terminal.insert("0.0", ">>> ByteTube Video Dönüştürücü Aktif\n>>> Klavye kısayolları: F5=Başlat, Ctrl+S=Kaydet, Esc=Çıkış\n>>> Hazır durumda...")
-
-    def ayarlar_sayfasi_olustur(self):
-        tab = self.tabview.tab("Ayarlar")
-        
-        # Bekleme süresi ayarı
-        sure_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        sure_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(sure_frame, text="⏱️ Cümle Bekleme Süresi (sn):", font=("Roboto", 14)).pack(side="left")
-        self.sure_slider = ctk.CTkSlider(sure_frame, from_=0.5, to=3.0, number_of_steps=25, command=self.sure_degistir)
-        self.sure_slider.set(self.bekleme_suresi)
-        self.sure_slider.pack(side="right", padx=(10, 0), fill="x", expand=True)
-        self.sure_label = ctk.CTkLabel(sure_frame, text=f"{self.bekleme_suresi:.1f} sn")
-        self.sure_label.pack(side="right")
-        
-        # OCR hassasiyeti
-        ocr_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        ocr_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(ocr_frame, text="🔍 OCR Hassasiyeti:", font=("Roboto", 14)).pack(side="left")
-        self.ocr_slider = ctk.CTkSlider(ocr_frame, from_=1.0, to=5.0, number_of_steps=40, command=self.ocr_degistir)
-        self.ocr_slider.set(self.ocr_hassasiyet)
-        self.ocr_slider.pack(side="right", padx=(10, 0), fill="x", expand=True)
-        self.ocr_label = ctk.CTkLabel(ocr_frame, text=f"{self.ocr_hassasiyet:.1f}")
-        self.ocr_label.pack(side="right")
-        
-        # Otomatik kaydetme
-        auto_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        auto_frame.pack(fill="x", padx=20, pady=10)
-        
-        self.auto_save_var = ctk.BooleanVar(value=self.ayarlar.get('kaydet_otomatik', False))
-        self.auto_save_check = ctk.CTkCheckBox(auto_frame, text="💾 Dönüştürmeleri otomatik kaydet", 
-                                               variable=self.auto_save_var, command=self.auto_save_degistir)
-        self.auto_save_check.pack(side="left")
-        
-        # Kaydetme butonları
-        save_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        save_frame.pack(fill="x", padx=20, pady=20)
-        
-        ctk.CTkButton(save_frame, text="💾 Ayarları Kaydet", command=self.ayarlar_kaydet).pack(side="left", padx=(0, 10))
-        ctk.CTkButton(save_frame, text="🔄 Varsayılana Dön", command=self.varsayilan_ayarlar).pack(side="right", padx=(10, 0))
-
-    def gecmis_sayfasi_olustur(self):
-        tab = self.tabview.tab("Geçmiş")
-        
-        # Geçmiş listesi
-        self.gecmis_textbox = ctk.CTkTextbox(tab, fg_color="#08080a", text_color="#00ff88", font=("Consolas", 12))
-        self.gecmis_textbox.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # Kontrol butonları
-        btn_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkButton(btn_frame, text="🔄 Yenile", command=self.gecmis_goster).pack(side="left", padx=(0, 10))
-        ctk.CTkButton(btn_frame, text="🗑️ Temizle", command=self.gecmis_temizle).pack(side="left", padx=(0, 10))
-        ctk.CTkButton(btn_frame, text="💾 Dışa Aktar", command=self.gecmis_disa_aktar).pack(side="right", padx=(10, 0))
-        
-        self.gecmis_goster()
-
-    def tema_degistir(self):
-        current_mode = ctk.get_appearance_mode()
-        if current_mode == "Dark":
-            ctk.set_appearance_mode("Light")
-            self.tema_btn.configure(text="☀️")
-            self.ayarlar['tema'] = 'light'
-        else:
-            ctk.set_appearance_mode("Dark")
-            self.tema_btn.configure(text="🌙")
-            self.ayarlar['tema'] = 'dark'
-        self.ayarlar_kaydet()
-
-    def sure_degistir(self, value):
-        self.bekleme_suresi = float(value)
-        self.sure_label.configure(text=f"{self.bekleme_suresi:.1f} sn")
-        self.ayarlar['bekleme_suresi'] = self.bekleme_suresi
-        self.ayarlar_kaydet()
-
-    def ocr_degistir(self, value):
-        self.ocr_hassasiyet = float(value)
-        self.ocr_label.configure(text=f"{self.ocr_hassasiyet:.1f}")
-        self.ayarlar['ocr_hassasiyet'] = self.ocr_hassasiyet
-        self.ayarlar_kaydet()
-
-    def auto_save_degistir(self):
-        self.ayarlar['kaydet_otomatik'] = self.auto_save_var.get()
-        self.ayarlar_kaydet()
-
-    def varsayilan_ayarlar(self):
-        self.ayarlar = {
-            'bekleme_suresi': 1.0,
-            'ocr_hassasiyet': 2.5,
-            'tema': 'dark',
-            'kaydet_otomatik': False
-        }
-        self.sure_slider.set(1.0)
-        self.ocr_slider.set(2.5)
-        self.auto_save_var.set(False)
-        ctk.set_appearance_mode("Dark")
-        self.tema_btn.configure(text="🌙")
-        self.ayarlar_kaydet()
-        messagebox.showinfo("Bilgi", "Ayarlar varsayılana döndürüldü!")
-
-    def donusturme_kaydet(self):
-        try:
-            with open(self.kaydet_dosyasi, 'a', encoding='utf-8') as f:
-                f.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
-                for item in self.gecmis[-10:]:  # Son 10 kayıt
-                    f.write(f"{item}\n")
-            messagebox.showinfo("Başarılı", f"Dönüştürmeler {self.kaydet_dosyasi} dosyasına kaydedildi!")
-        except Exception as e:
-            messagebox.showerror("Hata", f"Kaydetme hatası: {e}")
-
-    def gecmis_goster(self):
-        self.gecmis_textbox.delete("0.0", "end")
-        if not self.gecmis:
-            self.gecmis_textbox.insert("0.0", "📝 Henüz dönüştürme geçmişi yok.")
-        else:
-            for i, item in enumerate(reversed(self.gecmis[-20:]), 1):  # Son 20 kayıt
-                self.gecmis_textbox.insert("end", f"{i}. {item}\n")
-
-    def gecmis_temizle(self):
-        if messagebox.askyesno("Onay", "Geçmişi temizlemek istediğinizden emin misiniz?"):
-            self.gecmis.clear()
-            self.gecmis_kaydet()
-            self.gecmis_goster()
-            messagebox.showinfo("Başarılı", "Geçmiş temizlendi!")
-
-    def gecmis_disa_aktar(self):
-        try:
-            dosya = filedialog.asksaveasfilename(defaultextension=".txt", 
-                                                filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-            if dosya:
-                with open(dosya, 'w', encoding='utf-8') as f:
-                    f.write("ByteTube Dönüştürme Geçmişi\n")
-                    f.write("=" * 50 + "\n\n")
-                    for item in self.gecmis:
-                        f.write(f"{item}\n\n")
-                messagebox.showinfo("Başarılı", f"Geçmiş {dosya} dosyasına aktarıldı!")
-        except Exception as e:
-            messagebox.showerror("Hata", f"Dışa aktarma hatası: {e}")
-
-    def on_closing(self):
-        if self.calisiyor:
-            if messagebox.askyesno("Çıkış", "Program çalışıyor. Çıkmak istediğinizden emin misiniz?"):
-                self.calisiyor = False
-                if hasattr(self, 'ekran'):
-                    self.ekran.destroy()
-                self.ayarlar_kaydet()
-                self.destroy()
-        else:
-            self.ayarlar_kaydet()
-            self.destroy()
+        self.video_info_text = ctk.CTkTextbox(info_frame, fg_color="#08080a", text_color="#00ff88", 
+                                             font=("Consolas", 11), height=200)
+        self.video_info_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.video_info_text.insert("0.0", "YouTube URL'sini yapıştırın...\n\n")
+        self.video_info_text.configure(state="disabled")
 
     def log_ekle(self, mesaj, seviye="INFO"):
         timestamp = time.strftime("%H:%M:%S")
         log_msg = f"[{timestamp}] {mesaj}"
-        self.terminal.insert("end", f"\n{log_msg}")
-        self.terminal.see("end")
+        
+        # Terminal'e yaz (eğer varsa)
+        try:
+            print(log_msg)
+        except:
+            pass
         
         # Dosyaya log
         if seviye == "ERROR":
@@ -357,116 +164,196 @@ class ByteTubeApp(ctk.CTk):
         else:
             logging.info(mesaj)
 
-    def dil_degistir(self, secim):
-        lang_map = {"Türkçe (tr)": "tr", "İngilizce (en)": "en", "Almanca (de)": "de", "Fransızca (fr)": "fr", "İspanyolca (es)": "es"}
-        self.target_lang = lang_map.get(secim, "tr")
-        self.translator = GoogleTranslator(source='en', target=self.target_lang)
-        self.log_ekle(f"Hedef dil {secim} olarak ayarlandı.")
+    def url_degisti(self, event=None):
+        url = self.url_entry.get().strip()
+        if url and ("youtube.com" in url or "youtu.be" in url):
+            # Kısa bir gecikme ile otomatik bilgi al
+            if hasattr(self, '_url_timer'):
+                self.after_cancel(self._url_timer)
+            self._url_timer = self.after(1000, self.youtube_bilgi_al_otomatik)
 
-    def alan_sec(self):
-        self.withdraw()
-        time.sleep(0.5)
-        top = tk.Toplevel()
-        top.attributes("-alpha", 0.4, "-fullscreen", True, "-topmost", True)
-        top.config(cursor="cross")
-        canvas = tk.Canvas(top, bg="black", highlightthickness=0)
-        canvas.pack(fill="both", expand=True)
-
-        def bitti(e):
-            self.secili_alan = (min(self.sx, e.x), min(self.sy, e.y), abs(e.x-self.sx), abs(e.y-self.sy))
-            top.destroy()
-            self.deiconify()
-            self.log_ekle("Altyazı bölgesi kilitlendi.")
-            self.progress_label.configure(text="Durum: Bölge seçildi")
-
-        canvas.bind("<ButtonPress-1>", lambda e: setattr(self, 'sx', e.x) or setattr(self, 'sy', e.y))
-        canvas.bind("<B1-Motion>", lambda e: canvas.delete("r") or canvas.create_rectangle(self.sx, self.sy, e.x, e.y, outline="#00d2ff", width=3, tags="r"))
-        canvas.bind("<ButtonRelease-1>", bitti)
-
-    def motor_tetikle(self):
-        if not self.secili_alan: 
-            messagebox.showwarning("Hata", "Önce bölge seçmelisin!")
+    def youtube_bilgi_al_otomatik(self):
+        url = self.url_entry.get().strip()
+        if not url:
             return
         
-        if not self.calisiyor:
-            self.calisiyor = True
-            self.ekran = SubtitleOverlay()
-            self.btn_baslat.configure(text="⏹️ DURDUR", fg_color="#ff4b4b", text_color="#fff")
-            self.progress_label.configure(text="Durum: Çalışıyor...")
-            self.progress_bar.set(0.5)
-            threading.Thread(target=self.akilli_isleyici, daemon=True).start()
-            self.log_ekle("Dönüştürücü başlatıldı.")
-        else:
-            self.calisiyor = False
-            self.ekran.destroy()
-            self.btn_baslat.configure(text="▶️ AKILLI DÖNÜŞTÜRÜCÜYÜ BAŞLAT", fg_color="#00d2ff", text_color="#000")
-            self.progress_label.configure(text="Durum: Durduruldu")
-            self.progress_bar.set(0)
-            self.log_ekle("Dönüştürücü durduruldu.")
-
-    def akilli_isleyici(self):
-        biriken_metin = ""
-        son_okuma_vakti = time.time()
-        donusturme_sayisi = 0
+        self.video_info_text.configure(state="normal")
+        self.video_info_text.delete("0.0", "end")
+        self.video_info_text.insert("0.0", "Video bilgileri alınıyor...\n\n")
+        self.video_info_text.configure(state="disabled")
         
-        while self.calisiyor:
+        threading.Thread(target=self._youtube_bilgi_al_thread, args=(url,), daemon=True).start()
+        url = self.url_entry.get().strip()
+        if not url:
+            messagebox.showwarning("Uyarı", "Lütfen YouTube URL'sini girin!")
+            return
+        
+        self.info_btn.configure(state="disabled", text="⏳ Bilgi alınıyor...")
+        self.video_info_text.configure(state="normal")
+        self.video_info_text.delete("0.0", "end")
+        self.video_info_text.insert("0.0", "Video bilgileri alınıyor...\n\n")
+        self.video_info_text.configure(state="disabled")
+        
+        threading.Thread(target=self._youtube_bilgi_al_thread, args=(url,), daemon=True).start()
+
+    def _youtube_bilgi_al_thread(self, url):
+        try:
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+            }
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+                # Bilgileri göster
+                info_text = f"📹 Başlık: {info.get('title', 'Bilinmiyor')}\n"
+                info_text += f"👤 Yükleyen: {info.get('uploader', 'Bilinmiyor')}\n"
+                info_text += f"⏱️ Süre: {info.get('duration', 0) // 60}:{info.get('duration', 0) % 60:02d}\n"
+                info_text += f"👁️ İzlenme: {info.get('view_count', 0):,}\n"
+                info_text += f"👍 Beğeni: {info.get('like_count', 0):,}\n"
+                info_text += f"📅 Yüklenme: {info.get('upload_date', 'Bilinmiyor')}\n\n"
+                
+                # Format bilgileri
+                info_text += "🎵 Kullanılabilir Formatlar:\n"
+                formats = info.get('formats', [])
+                video_formats = [f for f in formats if f.get('vcodec') != 'none']
+                audio_formats = [f for f in formats if f.get('acodec') != 'none' and f.get('vcodec') == 'none']
+                
+                if video_formats:
+                    info_text += f"🎬 Video: {len(video_formats)} format\n"
+                    best_video = max(video_formats, key=lambda x: x.get('height', 0))
+                    info_text += f"  └ En iyi: {best_video.get('height', 'Bilinmiyor')}p\n"
+                
+                if audio_formats:
+                    info_text += f"🎵 Ses: {len(audio_formats)} format\n"
+                    best_audio = max(audio_formats, key=lambda x: x.get('abr', 0))
+                    info_text += f"  └ En iyi: {best_audio.get('abr', 'Bilinmiyor')}kbps\n"
+                
+                self.video_info_text.configure(state="normal")
+                self.video_info_text.delete("0.0", "end")
+                self.video_info_text.insert("0.0", info_text)
+                self.video_info_text.configure(state="disabled")
+                
+        except Exception as e:
+            error_msg = f"❌ Hata: {str(e)}\n\nURL'nin doğru olduğundan emin olun."
+            self.video_info_text.configure(state="normal")
+            self.video_info_text.delete("0.0", "end")
+            self.video_info_text.insert("0.0", error_msg)
+            self.video_info_text.configure(state="disabled")
+            logging.error(f"YouTube bilgi alma hatası: {e}")
+        
+        finally:
+            self.info_btn.configure(state="normal", text="ℹ️ BİLGİ AL")
+
+    def indir(self):
+        url = self.url_entry.get().strip()
+        if not url:
+            messagebox.showwarning("Uyarı", "Lütfen YouTube URL'sini girin!")
+            self.log_ekle("HATA: URL girilmedi", "ERROR")
+            return
+        
+        if not ("youtube.com" in url or "youtu.be" in url):
+            messagebox.showwarning("Uyarı", "Geçerli bir YouTube URL'si girin!")
+            self.log_ekle("HATA: Geçersiz YouTube URL'si", "ERROR")
+            return
+        
+        # İndirme klasörü seçimi
+        download_dir = filedialog.askdirectory(title="İndirme Klasörünü Seçin")
+        if not download_dir:
+            self.log_ekle("İptal: Klasör seçilmedi")
+            return
+        
+        format_type = self.format_var.get()
+        quality = self.quality_var.get()
+        
+        self.download_btn.configure(state="disabled", text="⏳ İNDİRİLİYOR...")
+        self.yt_progress_bar.set(0)
+        self.yt_progress_label.configure(text=f"{format_type.upper()} indirme hazırlanıyor...")
+        self.log_ekle(f"İndirme başlatıldı: {format_type.upper()} - {url}")
+        
+        threading.Thread(target=self._indir_thread, 
+                        args=(url, download_dir, format_type, quality), daemon=True).start()
+
+    def _indir_thread(self, url, download_dir, format_type, quality):
+        try:
+            # Kalite ayarları
+            quality_map = {
+                "En İyi": "best",
+                "720p": "best[height<=720]",
+                "480p": "best[height<=480]", 
+                "360p": "best[height<=360]"
+            }
+            
+            if format_type == "mp4":
+                ydl_opts = {
+                    'format': f"{quality_map.get(quality, 'best')}[ext=mp4]/best[ext=mp4]",
+                    'outtmpl': os.path.join(download_dir, '%(title)s.%(ext)s'),
+                    'progress_hooks': [self._youtube_progress_hook],
+                    'quiet': True,
+                    'no_warnings': True,
+                }
+                format_name = "MP4 Video"
+            else:  # mp3
+                ydl_opts = {
+                    'format': 'bestaudio/best',
+                    'outtmpl': os.path.join(download_dir, '%(title)s.%(ext)s'),
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '192',
+                    }],
+                    'progress_hooks': [self._youtube_progress_hook],
+                    'quiet': True,
+                    'no_warnings': True,
+                }
+                format_name = "MP3 Ses"
+            
+            self.log_ekle(f"yt-dlp seçenekleri hazır: {format_name}")
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                self.log_ekle("yt-dlp indirici başlatıldı")
+                ydl.download([url])
+            
+            self.yt_progress_label.configure(text=f"✅ {format_name} başarıyla indirildi!")
+            self.yt_progress_bar.set(1.0)
+            messagebox.showinfo("Başarılı", f"{format_name} başarıyla indirildi!\nKlasör: {download_dir}")
+            self.log_ekle(f"İndirme başarılı: {format_name} - {url}")
+            
+        except Exception as e:
+            error_msg = f"❌ {format_type.upper()} indirme hatası!"
+            self.yt_progress_label.configure(text=error_msg)
+            messagebox.showerror("Hata", f"İndirme sırasında hata oluştu:\n{str(e)}")
+            self.log_ekle(f"İndirme hatası: {e}", "ERROR")
+        
+        finally:
+            self.download_btn.configure(state="normal", text="⬇️ İNDİR")
+
+    def _youtube_progress_hook(self, d):
+        if d['status'] == 'downloading':
             try:
-                # Optimizasyon: Görüntüyü daha hızlı işle
-                ekran_goruntusu = pyautogui.screenshot(region=self.secili_alan)
-                
-                # Gelişmiş görüntü işleme
-                processed_img = ImageOps.grayscale(ekran_goruntusu)
-                processed_img = ImageOps.invert(processed_img)
-                processed_img = processed_img.filter(ImageFilter.MedianFilter(size=3))  # Gürültü azaltma
-                processed_img = ImageEnhance.Contrast(processed_img).enhance(self.ocr_hassasiyet)
-                
-                su_anki_metin = pytesseract.image_to_string(processed_img, lang='eng', config='--psm 6').strip()
-                
-                # Debug log
-                if su_anki_metin and len(su_anki_metin) > 2:
-                    self.log_ekle(f"OCR: '{su_anki_metin[:50]}...'" if len(su_anki_metin) > 50 else f"OCR: '{su_anki_metin}'", "DEBUG")
-                
-                # Yeni metin kontrolü
-                if len(su_anki_metin) > 3:  # Minimum uzunluk
-                    if su_anki_metin != biriken_metin:
-                        biriken_metin = su_anki_metin
-                        son_okuma_vakti = time.time()
-                        self.log_ekle(f"Yeni metin: '{biriken_metin[:30]}...'" if len(biriken_metin) > 30 else f"Yeni metin: '{biriken_metin}'", "DEBUG")
-                        self.progress_bar.set(0.7)
-                
-                # Cümle bitiş kontrolü
-                if biriken_metin and (time.time() - son_okuma_vakti > self.bekleme_suresi):
-                    try:
-                        # Dönüştürme
-                        cevirilen = self.translator.translate(biriken_metin)
-                        self.ekran.guncelle(cevirilen)
-                        
-                        # Geçmişe ekle
-                        timestamp = time.strftime("%H:%M:%S")
-                        gecmis_item = f"[{timestamp}] {biriken_metin} → {cevirilen}"
-                        self.gecmis.append(gecmis_item)
-                        
-                        self.log_ekle(f"DÖNÜŞTÜRÜLDÜ: {cevirilen}")
-                        donusturme_sayisi += 1
-                        self.progress_label.configure(text=f"Durum: {donusturme_sayisi} dönüştürme yapıldı")
-                        
-                        # Otomatik kaydetme
-                        if self.ayarlar.get('kaydet_otomatik', False):
-                            self.donusturme_kaydet()
-                        
-                        self.progress_bar.set(1.0)
-                        
-                    except Exception as e:
-                        self.log_ekle(f"Dönüştürme hatası: {e}", "ERROR")
-                    
-                    biriken_metin = ""
-                    self.progress_bar.set(0.5)
-                
-                time.sleep(0.2)  # Daha hızlı tarama
-                
-            except Exception as e:
-                self.log_ekle(f"Genel hata: {e}", "ERROR")
-                time.sleep(0.5)
+                percent = float(d.get('_percent_str', '0%').replace('%', ''))
+                self.yt_progress_bar.set(percent / 100)
+                speed = d.get('_speed_str', 'Bilinmiyor')
+                eta = d.get('_eta_str', 'Bilinmiyor')
+                self.yt_progress_label.configure(text=f"İndiriliyor... %{percent:.1f} - Hız: {speed} - Kalan: {eta}")
+            except:
+                self.yt_progress_label.configure(text="İndiriliyor...")
+        elif d['status'] == 'finished':
+            self.yt_progress_label.configure(text="Dönüştürülüyor...")
+
+    def youtube_temizle(self):
+        self.url_entry.delete(0, "end")
+        self.video_info_text.configure(state="normal")
+        self.video_info_text.delete("0.0", "end")
+        self.video_info_text.insert("0.0", "YouTube URL'sini yapıştırın...\n\n")
+        self.video_info_text.configure(state="disabled")
+        self.yt_progress_bar.set(0)
+        self.yt_progress_label.configure(text="URL'yi yapıştırın ve MP3'ü indirin")
+
+    def on_closing(self):
+        self.ayarlar_kaydet()
+        self.destroy()
 
 if __name__ == "__main__":
     app = ByteTubeApp()

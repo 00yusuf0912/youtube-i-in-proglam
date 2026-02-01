@@ -1,58 +1,45 @@
-# ByteTube v16.0 - Video Dönüştürücü
+# ByteTube - YouTube Dönüştürücü
 
-Gelişmiş altyazı tanıma ve çeviri uygulaması. OCR teknolojisi ile ekran üzerindeki metinleri tespit edip istediğiniz dile çevirir.
+YouTube videolarını MP3/MP4 formatına dönüştüren gelişmiş indirme uygulaması. yt-dlp teknolojisi ile yüksek kaliteli indirme sağlar.
 
-## ✨ Yeni Özellikler
-- **Sekmeli Arayüz**: Ana Sayfa, Ayarlar, Geçmiş sekmeleri
-- **Gelişmiş Ayarlar**: Bekleme süresi ve OCR hassasiyeti ayarları
-- **Geçmiş Yönetimi**: Dönüştürme geçmişini görüntüleme ve dışa aktarma
-- **Otomatik Kaydetme**: Dönüştürmeleri otomatik olarak dosyaya kaydetme
-- **Tema Değiştirici**: Koyu/açık tema seçimi
-- **Klavye Kısayolları**: F5 (Başlat/Durdur), Ctrl+S (Kaydet), Esc (Çıkış)
-- **İlerleme Göstergeleri**: Gerçek zamanlı durum takibi
-- **Detaylı Loglama**: Sistem logları ve hata raporlama
+## ✨ Özellikler
+- **YouTube Video/MP3 İndirme**: yt-dlp ile yüksek kaliteli indirme
+- **Çoklu Format Desteği**: MP4 video ve MP3 ses formatları
+- **Kalite Seçenekleri**: En İyi, 720p, 480p, 360p
+- **Video Bilgi Görüntüleme**: Başlık, süre, izlenme, beğeni bilgileri
+- **İlerleme Takibi**: Gerçek zamanlı indirme ilerlemesi
+- **Kolay Kullanım**: Modern ve kullanıcı dostu arayüz
 
 ## 🚀 Özellikler
-- Gerçek zamanlı OCR ile altyazı tespiti
-- Google Translate entegrasyonu
-- Cümle bitiş algılama
-- Sürüklebilir overlay penceresi
-- Çoklu dil desteği (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca)
-- Optimizasyon ayarları
+- **Otomatik Video Bilgi Alma**: URL yapıştırılınca otomatik olarak video bilgileri alınır
+- **Çoklu Format Desteği**: MP3 (Ses) ve MP4 (Video) formatları
+- **Kalite Seçenekleri**: MP4 için En İyi, 720p, 480p, 360p seçenekleri
+- **Kolay Kullanım**: Tek butonla indirme
+- **İlerleme Takibi**: Gerçek zamanlı indirme ilerlemesi ve hata ayıklama
+- **Detaylı Loglama**: Tüm işlemler loglanır ve takip edilebilir
 
 ## 🎮 Kullanım
-1. **Dil Seçimi**: Hedef dili combo box'tan seçin
-2. **Bölge Seçimi**: "ALTYAZI ALANINI BELİRLE" butonuna tıklayın ve altyazı bölgesini seçin
-3. **Başlatma**: "AKILLI DÖNÜŞTÜRÜCÜYÜ BAŞLAT" butonuna tıklayın veya F5'e basın
-4. **İzleme**: Overlay penceresinde çeviriler görünecektir
-5. **Ayarlar**: Ayarlar sekmesinden parametreleri özelleştirin
-6. **Geçmiş**: Geçmiş sekmesinden önceki dönüştürmeleri görüntüleyin
+1. Uygulamayı başlatın
+2. YouTube URL'sini yapıştırın (otomatik olarak video bilgileri alınır)
+3. Format seçin: MP3 (Ses) veya MP4 (Video)
+4. MP4 için kalite seçin (En İyi, 720p, 480p, 360p)
+5. "⬇️ İNDİR" butonuna tıklayın
+6. İndirme klasörünü seçin
+7. İndirme işlemini takip edin
 
-## ⚙️ Ayarlar
-- **Bekleme Süresi**: Cümle bitişini algılamak için bekleme süresi (0.5-3.0 sn)
-- **OCR Hassasiyeti**: Metin tanıma duyarlılığı (1.0-5.0)
-- **Otomatik Kaydetme**: Dönüştürmeleri otomatik olarak dosyaya kaydetme
-- **Tema**: Koyu/açık tema seçimi
-
-## ⌨️ Klavye Kısayolları
-- **F5**: Dönüştürücüyü başlat/durdur
-- **Ctrl+S**: Geçerli dönüştürmeleri kaydet
-- **Ctrl+R**: Geçmişi temizle
-- **Esc**: Uygulamadan çık
-
-## Gereksinimler
+## 📋 Gereksinimler
 - Python 3.8+
-- Tesseract OCR
-- Gerekli Python paketleri: customtkinter, pyautogui, pillow, pytesseract, deep-translator
+- FFmpeg (MP3 dönüştürme için)
+- Gerekli Python paketleri: customtkinter, yt-dlp
 
-## Kurulum
-1. Tesseract OCR'yi yükleyin:
-   - Windows: https://github.com/UB-Mannheim/tesseract/wiki
-   - Linux: `sudo apt install tesseract-ocr`
+## 🔧 Kurulum
+1. FFmpeg'i yükleyin (MP3 dönüştürme için):
+   - Windows: https://ffmpeg.org/download.html
+   - Linux: `sudo apt install ffmpeg`
 
 2. Python paketlerini yükleyin:
    ```bash
-   pip install customtkinter pyautogui pillow pytesseract deep-translator
+   pip install customtkinter yt-dlp
    ```
 
 3. Uygulamayı çalıştırın:
@@ -60,17 +47,7 @@ Gelişmiş altyazı tanıma ve çeviri uygulaması. OCR teknolojisi ile ekran ü
    python byte_tube.py
    ```
 
-## Kullanım
-1. Hedef dili seçin (varsayılan Türkçe)
-2. "ALTYAZI ALANINI BELİRLE" butonuna tıklayın
-3. Altyazı bölgesini fare ile seçin
-4. "AKILLI ÇEVİRİYİ BAŞLAT" butonuna tıklayın
-5. Overlay penceresinde dönüştürmeler görünecektir
-
-## Hata Ayıklama
-- Terminal alanında debug mesajları görünür
-- OCR sonuçları ve dönüştürme hataları loglanır
-
-## Notlar
-- Uygulama Windows için optimize edilmiştir, Linux'ta GUI kısıtlamaları olabilir
-- İnternet bağlantısı dönüştürme için gereklidir
+## 📝 Notlar
+- YouTube'un kullanım şartlarına uygun şekilde kullanın
+- FFmpeg MP3 dönüştürme için gereklidir
+- Uygulama Windows ve Linux'ta çalışır
