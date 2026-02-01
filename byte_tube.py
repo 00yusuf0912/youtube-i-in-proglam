@@ -388,7 +388,8 @@ class ByteTubeApp(ctk.CTk):
             except:
                 self.yt_progress_label.configure(text="İndiriliyor...")
         elif d['status'] == 'finished':
-            self.yt_progress_label.configure(text="Dönüştürülüyor...")
+            self.yt_progress_label.configure(text="✅ İndirme Tamamlandı!")
+            self.yt_progress_bar.set(1.0)
 
     def youtube_temizle(self):
         self.url_entry.delete(0, "end")
