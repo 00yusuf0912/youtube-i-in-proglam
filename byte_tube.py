@@ -212,12 +212,14 @@ class ByteTubeApp(ctk.CTk):
                 
                 if video_formats:
                     info_text += f"🎬 Video: {len(video_formats)} format\n"
-                    best_video = max(video_formats, key=lambda x: x.get('height', 0))
+                    best_video = max(video_formats, key=lambda x: x.get('height') or 0)
+                    print(f"DEBUG: En iyi video format - height: {best_video.get('height')}")
                     info_text += f"  └ En iyi: {best_video.get('height', 'Bilinmiyor')}p\n"
                 
                 if audio_formats:
                     info_text += f"🎵 Ses: {len(audio_formats)} format\n"
-                    best_audio = max(audio_formats, key=lambda x: x.get('abr', 0))
+                    best_audio = max(audio_formats, key=lambda x: x.get('abr') or 0)
+                    print(f"DEBUG: En iyi audio format - abr: {best_audio.get('abr')}")
                     info_text += f"  └ En iyi: {best_audio.get('abr', 'Bilinmiyor')}kbps\n"
                 
                 self.video_info_text.configure(state="normal")
